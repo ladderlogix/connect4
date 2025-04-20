@@ -9,10 +9,11 @@ const API_BASE_URL = 'http://localhost:5000/api';
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { game, loading, error, makeMove, createGame } = useGame(gameId ? parseInt(gameId) : undefined);
+  const { game, loading, error, isConnected, makeMove, createGame } = useGame(gameId ? parseInt(gameId) : undefined);
   const [loadingState, setLoadingState] = useState(false);
   const [gameState, setGameState] = useState<any>(null);
   const [errorState, setErrorState] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -57,6 +58,7 @@ const GamePage: React.FC = () => {
     console.log('Column clicked:', column);
     if (game && game.state && !game.state.game_over) {
       console.log('Making move in column:', column);
+      setIsUpdating(true);
       const success = await makeMove(column);
       console.log('Move result:', success);
       
@@ -64,6 +66,7 @@ const GamePage: React.FC = () => {
         console.log('Updated game state:', game);
         console.log('Updated board:', game?.state?.board);
       }
+      setIsUpdating(false);
     } else {
       console.log('Cannot make move:', { game, gameState: game?.state, gameOver: game?.state?.game_over });
     }
@@ -143,6 +146,18 @@ const GamePage: React.FC = () => {
         </div>
         
         <div className="bg-white rounded-xl shadow-xl p-12 mb-12" style={{ width: '100%', minWidth: '700px' }}>
+          {isUpdating && (
+            <div className="text-center mb-4 text-blue-600 font-medium">
+              Making your move...
+            </div>
+          )}
+          
+          <div className="flex justify-center mb-4">
+            <div className={`px-4 py-2 rounded-full ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {isConnected ? 'Connected to game server' : 'Disconnected from game server'}
+            </div>
+          </div>
+          
           <GameBoard
             board={game.state.board}
             onColumnClick={handleColumnClick}

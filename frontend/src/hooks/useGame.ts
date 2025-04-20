@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
 import { Game, MoveResponse } from '../types/game';
 
 const API_BASE_URL = 'http://localhost:5000/api';
+const SOCKET_URL = 'http://localhost:5000';
 
 export const useGame = (initialGameId?: number) => {
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   const fetchGame = async (gameId: number) => {
     try {
@@ -145,9 +149,56 @@ export const useGame = (initialGameId?: number) => {
     }
   };
 
+  // Set up WebSocket connection
   useEffect(() => {
     if (initialGameId) {
+      // Initial fetch
       fetchGame(initialGameId);
+      
+      // Initialize socket connection
+      socketRef.current = io(SOCKET_URL);
+      
+      // Set up socket event handlers
+      socketRef.current.on('connect', () => {
+        console.log('Connected to WebSocket server');
+        setIsConnected(true);
+        
+        // Join the game room
+        socketRef.current?.emit('join_game', { game_id: initialGameId });
+      });
+      
+      socketRef.current.on('disconnect', () => {
+        console.log('Disconnected from WebSocket server');
+        setIsConnected(false);
+      });
+      
+      socketRef.current.on('connected', (data) => {
+        console.log('Socket connected event:', data);
+      });
+      
+      socketRef.current.on('joined_game', (data) => {
+        console.log('Joined game room:', data);
+      });
+      
+      socketRef.current.on('game_updated', (data) => {
+        console.log('Game updated via WebSocket:', data);
+        if (data.id === initialGameId) {
+          setGame(data);
+        }
+      });
+      
+      socketRef.current.on('error', (data) => {
+        console.error('Socket error:', data);
+        setError(data.message || 'WebSocket error');
+      });
+      
+      // Clean up socket connection on unmount
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.emit('leave_game', { game_id: initialGameId });
+          socketRef.current.disconnect();
+        }
+      };
     }
   }, [initialGameId]);
 
@@ -155,6 +206,7 @@ export const useGame = (initialGameId?: number) => {
     game,
     loading,
     error,
+    isConnected,
     createGame,
     makeMove,
     fetchGames
