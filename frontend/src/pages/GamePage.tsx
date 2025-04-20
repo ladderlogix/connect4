@@ -9,9 +9,6 @@ const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const { game, loading, error, isConnected, makeMove, createGame } = useGame(gameId ? parseInt(gameId) : undefined);
-  const [loadingState, setLoadingState] = useState(false);
-  const [gameState, setGameState] = useState<any>(null);
-  const [errorState, setErrorState] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Debug logging
@@ -26,7 +23,6 @@ const GamePage: React.FC = () => {
       // Validate board structure
       if (!Array.isArray(game.state.board)) {
         console.error('Invalid board structure:', game.state.board);
-        setErrorState('Invalid board structure');
         return;
       }
       
@@ -57,7 +53,6 @@ const GamePage: React.FC = () => {
   useEffect(() => {
     if (error) {
       console.error('Game error:', error);
-      setErrorState(error);
       
       // If the error is "Game not found", try to fetch the game again
       if (error.includes('not found') && gameId) {
@@ -87,15 +82,9 @@ const GamePage: React.FC = () => {
 
   const fetchGame = async (id: number) => {
     try {
-      setLoadingState(true);
-      const response = await axios.get(`${API_BASE_URL}/games/${id}`);
-      setGameState(response.data);
-      setErrorState(null);
+      await axios.get(`${API_BASE_URL}/games/${id}`);
     } catch (err) {
-      setErrorState('Failed to fetch game');
       console.error(err);
-    } finally {
-      setLoadingState(false);
     }
   };
 
