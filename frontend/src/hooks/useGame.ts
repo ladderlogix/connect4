@@ -159,11 +159,12 @@ export const useGame = (initialGameId?: number) => {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 10000,
-
+        path: '/socket.io/',
+        
         // Add to work with cloudflare
         secure: true,
         upgrade: true,
-        transports: ['websocket']
+        transports: ['websocket', 'polling']
       });
       
       // Set up socket event handlers

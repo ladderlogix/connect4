@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 # CORS configuration
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
-socketio = SocketIO(app, cors_allowed_origins=ALLOWED_ORIGINS)
+socketio = SocketIO(app, cors_allowed_origins=ALLOWED_ORIGINS, async_mode='gevent', path='/socket.io/')
 
 db = Database()
 
@@ -144,6 +144,9 @@ def handle_disconnect():
 @socketio.on('join_game')
 def handle_join_game(data):
     game_id = data.get('game_id')
+    logger.info(f"Client attempting to join game: {game_id}")
+    logger.info(f"Active rooms: {active_rooms}")
+    
     if game_id:
         room = active_rooms.get(game_id)
         if room:
@@ -164,8 +167,10 @@ def handle_join_game(data):
                 emit('error', {'message': 'Game not found'})
         else:
             logger.warning(f"Game room not found for game ID: {game_id}")
+            logger.warning(f"Active rooms: {active_rooms}")
             emit('error', {'message': 'Game not found'})
     else:
+        logger.warning("Game ID not provided in join_game event")
         emit('error', {'message': 'Game ID not provided'})
 
 @socketio.on('leave_game')
@@ -179,4 +184,4 @@ def handle_leave_game(data):
             emit('left_game', {'game_id': game_id, 'room': room})
 
 if __name__ == '__main__':
-    socketio.run(app, host=HOST, port=PORT, debug=DEBUG) 
+    socketio.run(app, host=HOST, port=PORT, debug=DEBUG, allow_unsafe_werkzeug=True) 
