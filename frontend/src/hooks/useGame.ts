@@ -158,7 +158,11 @@ export const useGame = (initialGameId?: number) => {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        timeout: 10000
+        timeout: 10000,
+
+        // Add to work with cloudflare
+        secure: true,
+        transports: ['polling']
       });
       
       // Set up socket event handlers
