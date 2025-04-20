@@ -5,14 +5,18 @@ from game_logic import Connect4Game
 from database import Database
 import logging
 import json
+import os
+from config import ALLOWED_ORIGINS, DEBUG, HOST, PORT, LOG_LEVEL
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+# CORS configuration
+CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
+socketio = SocketIO(app, cors_allowed_origins=ALLOWED_ORIGINS)
 
 db = Database()
 
@@ -46,6 +50,20 @@ def get_game(game_id):
     if game_state is None:
         logger.warning(f"Game not found with ID: {game_id}")
         return jsonify({'error': 'Game not found'}), 404
+    
+    # Ensure the game state has the correct structure
+    if not isinstance(game_state, dict):
+        logger.error(f"Invalid game state structure: {game_state}")
+        return jsonify({'error': 'Invalid game state structure'}), 500
+    
+    if 'board' not in game_state:
+        logger.error(f"Game state missing board: {game_state}")
+        return jsonify({'error': 'Game state missing board'}), 500
+    
+    # Ensure the board is properly structured
+    if not isinstance(game_state['board'], list) or len(game_state['board']) == 0:
+        logger.error(f"Invalid board structure: {game_state['board']}")
+        return jsonify({'error': 'Invalid board structure'}), 500
     
     logger.info(f"Game state: {json.dumps(game_state, indent=2)}")
     return jsonify({
@@ -136,10 +154,14 @@ def handle_join_game(data):
             # Send current game state to the newly joined client
             game_state = db.get_game(game_id)
             if game_state:
+                logger.info(f"Sending game state to client: {json.dumps(game_state, indent=2)}")
                 emit('game_updated', {
                     'id': game_id,
                     'state': game_state
                 })
+            else:
+                logger.warning(f"Game {game_id} not found when client joined")
+                emit('error', {'message': 'Game not found'})
         else:
             logger.warning(f"Game room not found for game ID: {game_id}")
             emit('error', {'message': 'Game not found'})
@@ -157,4 +179,4 @@ def handle_leave_game(data):
             emit('left_game', {'game_id': game_id, 'room': room})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True) 
+    socketio.run(app, host=HOST, port=PORT, debug=DEBUG) 

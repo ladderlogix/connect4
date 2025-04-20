@@ -1,9 +1,10 @@
 import sqlite3
 import json
 from datetime import datetime
+from config import DATABASE_PATH
 
 class Database:
-    def __init__(self, db_path="games.db"):
+    def __init__(self, db_path=DATABASE_PATH):
         self.db_path = db_path
         self.init_db()
 

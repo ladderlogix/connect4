@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 import { Game, MoveResponse } from '../types/game';
-
-const API_BASE_URL = 'http://localhost:5000/api';
-const SOCKET_URL = 'http://localhost:5000';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 export const useGame = (initialGameId?: number) => {
   const [game, setGame] = useState<Game | null>(null);
@@ -156,7 +154,12 @@ export const useGame = (initialGameId?: number) => {
       fetchGame(initialGameId);
       
       // Initialize socket connection
-      socketRef.current = io(SOCKET_URL);
+      socketRef.current = io(SOCKET_URL, {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000
+      });
       
       // Set up socket event handlers
       socketRef.current.on('connect', () => {

@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import GameBoard from '../components/GameBoard';
 import { useGame } from '../hooks/useGame';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../config';
 
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -53,6 +52,20 @@ const GamePage: React.FC = () => {
       initializeGame();
     }
   }, [gameId, createGame, navigate]);
+
+  // Handle errors from useGame hook
+  useEffect(() => {
+    if (error) {
+      console.error('Game error:', error);
+      setErrorState(error);
+      
+      // If the error is "Game not found", try to fetch the game again
+      if (error.includes('not found') && gameId) {
+        console.log('Attempting to fetch game again...');
+        fetchGame(parseInt(gameId));
+      }
+    }
+  }, [error, gameId]);
 
   const handleColumnClick = async (column: number) => {
     console.log('Column clicked:', column);
