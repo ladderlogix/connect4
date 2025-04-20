@@ -162,7 +162,8 @@ export const useGame = (initialGameId?: number) => {
 
         // Add to work with cloudflare
         secure: true,
-        transports: ['polling']
+        upgrade: true,
+        transports: ['websocket']
       });
       
       // Set up socket event handlers
